@@ -27,6 +27,7 @@ contract DappStore is AccessControl, Initializable {
         uint secondaryCategoryIndex;
         string shortIntroduction;
         string logoLink;
+        string banner;
         string websiteLink;
         string contractAddresses;
         string email;
@@ -51,6 +52,7 @@ contract DappStore is AccessControl, Initializable {
         uint secondaryCategory;
         string shortIntroduction;
         string logoLink;
+        string banner;
         string websiteLink;
         uint addMarginAmount;
     }
@@ -147,7 +149,7 @@ contract DappStore is AccessControl, Initializable {
 
         emit UpdateSecondaryCategory(index, newSecondaryCategory);
     }
-    // ["title", 0, 0, "shortIntroduction", "logoLink", "websiteLink", "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2", "xx@gmail.com", "100000000000000000"]
+    // ["title", 0, 0, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2", "xx@gmail.com", "100000000000000000"]
     // ["", "", "", "", "", "", "", "", ""]
     function submitProjectInfo(RequiredProjectInfo calldata requiredProjectInfo, OptionalProjectInfo calldata optionalProjectInfo) public payable onlyCheckedCategory(requiredProjectInfo.primaryCategoryIndex, requiredProjectInfo.secondaryCategoryIndex) {
         require(projectInfos[msg.sender].status == 0, "DS: one project can be submitted at the same address");
@@ -165,6 +167,7 @@ contract DappStore is AccessControl, Initializable {
     }
 
     function verifySubmitProjectInfo(address payable projectAddress, uint8 _status) public onlyVerifier {
+        require(_status == 2 || _status == 3, "DS: invalid _status value");
         if (_status == 3) {
             projectAddress.transfer(projectInfos[projectAddress].requiredProjectInfo.marginAmount);
         }
@@ -173,7 +176,7 @@ contract DappStore is AccessControl, Initializable {
         emit VerifySubmitProjectInfo(projectAddress, _status);
     }
 
-    // [["", "", "", "", "", "", "", "", ""], 1, 1, "shortIntroduction", "logoLink", "websiteLink", "0"]
+    // [["", "", "", "", "", "", "", "", ""], 1, 1, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0"]
     function updateProjectInfo(address projectAddress, ChangedInfo calldata _changedInfo) public payable onlyPassedProject(projectAddress) onlyCheckedCategory(_changedInfo.primaryCategory, _changedInfo.secondaryCategory) {
         require(!projectInfos[projectAddress].updateStatus, "DS: updateStatus must be false");
         require(msg.sender == projectAddress, "DS: projectAddress must be equal msg.sender");
@@ -201,7 +204,7 @@ contract DappStore is AccessControl, Initializable {
         }
         projectInfos[projectAddress].updateStatus = false;
 
-        emit VerifyUpdateProjectInfo(projectAddress, version, false);
+        emit VerifyUpdateProjectInfo(projectAddress, version, isUpdate);
     }
 
     function submitCommentInfo(address projectAddress, uint8 score, string calldata title, string calldata review) public onlyPassedProject(projectAddress) {

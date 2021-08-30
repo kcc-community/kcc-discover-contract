@@ -103,7 +103,7 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
                 value: amount,
                 from:  owner1,
             });
-            await expectRevert(promise, "DS: one project can be submitted at the same address");
+            await expectRevert(promise, "DS: only one submission is allowed for an account");
         });
     });
 

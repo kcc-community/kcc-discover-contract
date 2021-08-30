@@ -12,13 +12,22 @@ contract DappStore is AccessControl, Initializable {
     uint public curPrimaryCategoryIndex;
     uint public curSecondaryCategoryIndex;
 
+    enum ProjectState {
+        None,
+        Pending,
+        Succeeded,
+        Defeated,
+        Canceled
+    }
+    ProjectState constant defaultProjectState = ProjectState.Pending;
+
     struct ProjectInfo {
         RequiredProjectInfo requiredProjectInfo;
         OptionalProjectInfo optionalProjectInfo;
-        uint8 status;  // 0表示未创建，1表示待审核, 2表示已通过, 3表示未通过, 4表示下架
+        uint8 status;
         uint curVersion;
         uint createTime;
-        bool updateStatus;  // false表示无进行中的版本更新，true表示有进行中的版本更新
+        bool updateStatus;
     }
 
     struct RequiredProjectInfo {
@@ -64,14 +73,14 @@ contract DappStore is AccessControl, Initializable {
         uint timestamp;
     }
 
-    mapping (string => bool) public existPrimaryCategories;
-    mapping (string => bool) public existSecondaryCategories;
-    mapping (uint => string) public primaryCategories;
-    mapping (uint => string) public secondaryCategories;
-    mapping (address => ProjectInfo) public projectInfos;
-    mapping (address => mapping(uint => ChangedInfo)) public changedInfos;
-    mapping (address => mapping(address => CommentInfo)) public commentInfos;
-    mapping (bytes32 => mapping(address => uint8)) public isLikeCommentInfos;
+    mapping(string => bool) public existPrimaryCategories;
+    mapping(string => bool) public existSecondaryCategories;
+    mapping(uint => string) public primaryCategories;
+    mapping(uint => string) public secondaryCategories;
+    mapping(address => ProjectInfo) public projectInfos;
+    mapping(address => mapping(uint => ChangedInfo)) public changedInfos;
+    mapping(address => mapping(address => CommentInfo)) public commentInfos;
+    mapping(bytes32 => mapping(address => uint8)) public isLikeCommentInfos;
 
     event UpdateMinMarginAmount(uint amount);
     event AddPrimaryCategory(uint index, string primaryCategory);
@@ -89,7 +98,6 @@ contract DappStore is AccessControl, Initializable {
     // ["DeFi", "Infrastructure", "Tools"]
     // ["Exchange", "NFT", "Game", "Earn", "Lending", "DAO", "Wallet", "Community", "Others"]
     function initialize(string[] memory _primaryCategories, string[] memory _secondaryCategories) public initializer {
-        // 上线前需要修改
         minMarginAmount = 10 ** 17;
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(VERIFIER_ROLE, _msgSender());
@@ -152,28 +160,40 @@ contract DappStore is AccessControl, Initializable {
     // ["title", 0, 0, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2", "xx@gmail.com", "100000000000000000"]
     // ["", "", "", "", "", "", "", "", ""]
     function submitProjectInfo(RequiredProjectInfo calldata requiredProjectInfo, OptionalProjectInfo calldata optionalProjectInfo) public payable onlyCheckedCategory(requiredProjectInfo.primaryCategoryIndex, requiredProjectInfo.secondaryCategoryIndex) {
-        require(projectInfos[msg.sender].status == 0, "DS: one project can be submitted at the same address");
-        require(msg.value >= minMarginAmount && msg.value == requiredProjectInfo.marginAmount, "DS: marginAmount error");
+        require(projectInfos[msg.sender].status == uint8(ProjectState.None), "DS: only one submission is allowed for an account");
+        require(msg.value == requiredProjectInfo.marginAmount, "DS: margin amount error");
+        require(msg.value >= minMarginAmount, "DS: insufficient value amounts");
         require(bytes(requiredProjectInfo.title).length <= 30, "DS: title length must <= 30");
         require(bytes(requiredProjectInfo.shortIntroduction).length <= 50, "DS: shortIntroduction length must <= 50");
 
         ProjectInfo storage projectInfo = projectInfos[msg.sender];
         projectInfo.requiredProjectInfo = requiredProjectInfo;
         projectInfo.optionalProjectInfo = optionalProjectInfo;
-        projectInfo.status = 1;
+        projectInfo.status = uint8(defaultProjectState);
         projectInfo.createTime = block.timestamp;
 
         emit SubmitProjectInfo(msg.sender, projectInfo);
     }
 
-    function verifySubmitProjectInfo(address payable projectAddress, uint8 _status) public onlyVerifier {
-        require(_status == 2 || _status == 3, "DS: invalid _status value");
-        if (_status == 3) {
-            projectAddress.transfer(projectInfos[projectAddress].requiredProjectInfo.marginAmount);
-        }
-        projectInfos[projectAddress].status = _status;
+    function successSubmittedProjectInfo(address projectAddress) public onlyVerifier {
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Pending), "DS: invalid _status value");
+        changeProjectState(projectAddress, ProjectState.Succeeded);
+    }
 
-        emit VerifySubmitProjectInfo(projectAddress, _status);
+    function defeatSubmittedProjectInfo(address payable projectAddress) public onlyVerifier {
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Pending), "DS: invalid _status value");
+        projectAddress.transfer(projectInfos[projectAddress].requiredProjectInfo.marginAmount);
+        changeProjectState(projectAddress, ProjectState.Defeated);
+    }
+
+    function cancelledProject(address payable projectAddress) public onlyVerifier {
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Succeeded), "DS: invalid _status value");
+        changeProjectState(projectAddress, ProjectState.Canceled);
+    }
+
+    function changeProjectState(address projectAddress, ProjectState _status) internal {
+        projectInfos[projectAddress].status = uint8(_status);
+        emit VerifySubmitProjectInfo(projectAddress, uint8(_status));
     }
 
     // [["", "", "", "", "", "", "", "", ""], 1, 1, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0"]
@@ -211,7 +231,7 @@ contract DappStore is AccessControl, Initializable {
         require(commentInfos[projectAddress][msg.sender].score == 0, "DS: one project can be reviewed at the same address");
         require(score > 0 && score <= 5, "DS: socre must >0 and <=5");
         uint title_length = bytes(title).length;
-        require(title_length> 0 && title_length <= 30, "DS: title length must > 0 and <=30");
+        require(title_length > 0 && title_length <= 30, "DS: title length must > 0 and <=30");
         CommentInfo memory commentInfo = CommentInfo(score, title, review, block.timestamp);
         commentInfos[projectAddress][msg.sender] = commentInfo;
 

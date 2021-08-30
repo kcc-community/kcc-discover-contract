@@ -229,9 +229,10 @@ contract DappStore is AccessControl, Initializable {
 
     function submitCommentInfo(address projectAddress, uint8 score, string calldata title, string calldata review) public onlyPassedProject(projectAddress) {
         require(commentInfos[projectAddress][msg.sender].score == 0, "DS: one project can be reviewed at the same address");
-        require(score > 0 && score <= 5, "DS: socre must >0 and <=5");
+        require(score > 0 && score <= 5, "DS: score must between 1 and 5");
         uint title_length = bytes(title).length;
-        require(title_length > 0 && title_length <= 30, "DS: title length must > 0 and <=30");
+        require(title_length > 0 && title_length <= 30, "DS: title length must between 1 and 30");
+
         CommentInfo memory commentInfo = CommentInfo(score, title, review, block.timestamp);
         commentInfos[projectAddress][msg.sender] = commentInfo;
 
@@ -240,7 +241,7 @@ contract DappStore is AccessControl, Initializable {
 
     // isLike=0 => default, isLike=1 => like, isLike=2 => dislike
     function isLikeCommentInfo(address projectAddress, address reviewer, uint8 isLike) public onlyPassedProject(projectAddress) {
-        require(isLike >= 0 && isLike <= 2, "DS: isLike must >=0 or <=2");
+        require(isLike >= 0 && isLike <= 2, "DS: isLike must between 0 and 2");
         require(commentInfos[projectAddress][reviewer].score > 0, "DS: review must exist");
         bytes32 commentHash = keccak256(abi.encodePacked(projectAddress, projectAddress));
         isLikeCommentInfos[commentHash][msg.sender] = isLike;
@@ -277,7 +278,7 @@ contract DappStore is AccessControl, Initializable {
     }
 
     modifier onlyPassedProject(address projectAddress) {
-        require(projectInfos[projectAddress].status == 2, "DS: project must have passed");
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Succeeded), "DS: project must have passed");
         _;
     }
 }

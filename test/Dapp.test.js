@@ -16,7 +16,7 @@ const priCategory = ["DeFi", "Infrastructure", "Tools"];
 const secCategory = ["Exchange", "NFT", "Game", "Earn", "Lending", "DAO", "Wallet", "Community", "Others"];
 const VERIFY_ROLE = web3.utils.soliditySha3("VERIFIER_ROLE");
 
-const DappStore   = artifacts.require("DappStore");
+const DappStore = artifacts.require("DappStore");
 // const DappStoreV2 = artifacts.require("DappStoreV2");
 
 let Store;
@@ -79,7 +79,7 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
         let submitReceipt;
         let erc20BalanceBefore;
         before(async function () {
-            balanceBefore = await balance.current(owner1);
+            balanceBefore      = await balance.current(owner1);
             erc20BalanceBefore = await balance.current(Store.address);
             submitReceipt      = await Store.submitProjectInfo(info, options, {
                 value: amount,
@@ -126,7 +126,7 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
             });
 
             it("access control", async function () {
-                await expectRevert(Store.updateProjectInfo(owner2, update, {from: owner3}), "DS: projectAddress must be equal msg.sender");
+                await expectRevert(Store.updateProjectInfo(owner2, update, {from: owner3}), "DS: projectAddress must be equal to msg.sender");
             });
 
             it("update info", async function () {
@@ -138,12 +138,30 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
             });
 
             it("verify updated info", async function () {
-                let receipt = await Store.verifyUpdateProjectInfo(owner2, "1", true, {from: verifier});
+                let receipt = await Store.successUpdatedProjectInfo(owner2, {from: verifier});
+                // console.info(receipt.logs[0].args);
                 expectEvent(receipt, "VerifyUpdateProjectInfo", {
                     projectAddress: owner2,
                     version:        "1",
                     isUpdate:       true,
                 });
+            });
+
+            it("new minMarginAmount", async function () {
+                const newAmount = new BN(10).mul(new BN(amount));
+                const receipt   = await Store.updateMinMarginAmount(newAmount.toString());
+                expectEvent(receipt, "UpdateMinMarginAmount", {amount: newAmount});
+            });
+
+            it("update info: insufficient", async function () {
+                update[update.length - 1] = amount;
+                const promise = Store.updateProjectInfo(owner2, update, {
+                    value: amount,
+                    from:  owner2,
+                });
+
+                await expectRevert(promise, "DS: insufficient margin amount");
+                await Store.updateMinMarginAmount(amount.toString());
             });
 
             it("update info: add margin", async function () {
@@ -167,7 +185,8 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
                 const erc20BalanceBefore  = await balance.current(Store.address);
                 const owner2BalanceBefore = await balance.current(owner2);
 
-                const receipt = await Store.verifyUpdateProjectInfo(owner2, "2", false, {from: verifier});
+                const receipt = await Store.defeatUpdatedProjectInfo(owner2, {from: verifier});
+                // console.info(receipt.logs[0].args);
                 expectEvent(receipt, "VerifyUpdateProjectInfo", {
                     projectAddress: owner2,
                     version:        "2",

@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract DappStore is AccessControl, Initializable {
+    using SafeERC20 for IERC20;
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
 
     uint public minMarginAmount;
@@ -199,31 +200,35 @@ contract DappStore is AccessControl, Initializable {
     // [["", "", "", "", "", "", "", "", ""], 1, 1, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0"]
     function updateProjectInfo(address projectAddress, ChangedInfo calldata _changedInfo) public payable onlyPassedProject(projectAddress) onlyCheckedCategory(_changedInfo.primaryCategory, _changedInfo.secondaryCategory) {
         require(!projectInfos[projectAddress].updateStatus, "DS: updateStatus must be false");
-        require(msg.sender == projectAddress, "DS: projectAddress must be equal msg.sender");
-        require(msg.value == _changedInfo.addMarginAmount, "DS: msg.value or addMarginAmount error");
+        require(msg.sender == projectAddress, "DS: projectAddress must be equal to msg.sender");
+        require(msg.value == _changedInfo.addMarginAmount, "DS: msg.value not equal to addMarginAmount");
+        require(_changedInfo.addMarginAmount + projectInfos[projectAddress].requiredProjectInfo.marginAmount >= minMarginAmount, "DS: insufficient margin amount");
         require(bytes(_changedInfo.shortIntroduction).length <= 50, "DS: shortIntroduction length must <= 50");
 
-        uint version = projectInfos[projectAddress].curVersion + 1;
+        uint version = projectInfos[projectAddress].curVersion++;
         changedInfos[projectAddress][version] = _changedInfo;
         projectInfos[projectAddress].updateStatus = true;
 
         emit UpdateProjectInfo(projectAddress, version, _changedInfo);
     }
 
-    function verifyUpdateProjectInfo(address payable projectAddress, uint version, bool isUpdate) public onlyVerifier {
-        uint addMarginAmount = changedInfos[projectAddress][version].addMarginAmount;
-        if (isUpdate) {
-            projectInfos[projectAddress].requiredProjectInfo.marginAmount = addMarginAmount + projectInfos[projectAddress].requiredProjectInfo.marginAmount;
+    function successUpdatedProjectInfo(address projectAddress) public onlyVerifier onlyPendingUpdate(projectAddress) {
+        uint version = projectInfos[projectAddress].curVersion;
+        uint newMarginAmount = projectInfos[projectAddress].requiredProjectInfo.marginAmount + changedInfos[projectAddress][version].addMarginAmount;
+        projectInfos[projectAddress].requiredProjectInfo.marginAmount = newMarginAmount;
+        changeUpdatedProjectState(projectAddress, version, true);
+    }
 
-            projectInfos[projectAddress].curVersion = version;
-        } else {
-            if (addMarginAmount > 0) {
-                projectAddress.transfer(addMarginAmount);
-            }
-            delete changedInfos[projectAddress][version];
+    function defeatUpdatedProjectInfo(address payable projectAddress) public onlyVerifier onlyPendingUpdate(projectAddress) {
+        uint version = projectInfos[projectAddress].curVersion;
+        if (changedInfos[projectAddress][version].addMarginAmount > 0) {
+            projectAddress.transfer(changedInfos[projectAddress][version].addMarginAmount);
         }
-        projectInfos[projectAddress].updateStatus = false;
+        changeUpdatedProjectState(projectAddress, version, false);
+    }
 
+    function changeUpdatedProjectState(address projectAddress, uint version, bool isUpdate) internal {
+        projectInfos[projectAddress].updateStatus = false;
         emit VerifyUpdateProjectInfo(projectAddress, version, isUpdate);
     }
 
@@ -256,7 +261,7 @@ contract DappStore is AccessControl, Initializable {
 
     function withdrawKRC20Token(address tokenAddress, address to, uint amount) public onlyOwner {
         require(IERC20(tokenAddress).balanceOf(address(this)) >= amount, "DS: insufficient contract balance");
-        IERC20(tokenAddress).transfer(to, amount);
+        IERC20(tokenAddress).safeTransfer(to, amount);
     }
 
     modifier onlyOwner() {
@@ -279,6 +284,11 @@ contract DappStore is AccessControl, Initializable {
 
     modifier onlyPassedProject(address projectAddress) {
         require(projectInfos[projectAddress].status == uint8(ProjectState.Succeeded), "DS: project must have passed");
+        _;
+    }
+
+    modifier onlyPendingUpdate(address projectAddress) {
+        require(projectInfos[projectAddress].updateStatus, "DS: no updated info to review");
         _;
     }
 }

@@ -17,8 +17,9 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
-
+const path             = require("path");
 const HDWalletProvider = require("@truffle/hdwallet-provider");
+require("dotenv").config({path: path.join(__dirname, ".env")});
 
 module.exports = {
     /**
@@ -30,7 +31,12 @@ module.exports = {
      *
      * $ truffle test --network <network-name>
      */
-
+    plugins:  [
+        "truffle-plugin-verify",
+    ],
+    api_keys: {
+        etherscan: process.env.ETHER_SCAN_API_KEY,
+    },
     networks: {
         // Useful for testing. The `development` name is special - truffle uses it by default
         // if it's defined here and no other network is specified at the command line.
@@ -46,7 +52,7 @@ module.exports = {
         },
         rinkeby:     {
             provider:        function () {
-                return new HDWalletProvider(process.env.MNEMONIC, "https://rinkeby.infura.io/v3/09a86476132d48b9af66709f8acd408b");
+                return new HDWalletProvider(process.env.PRIVATE_KEY, process.env.INFURA_URL);
             },
             network_id:      4,
             skipDryRun:      true,

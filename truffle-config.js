@@ -58,6 +58,14 @@ module.exports = {
             skipDryRun:      true,
             pollingInterval: 60000,
         },
+        kcctestnet:  {
+            provider:        function () {
+                return new HDWalletProvider(process.env.PRIVATE_KEY, "https://rpc-testnet.kcc.network");
+            },
+            network_id:      322,
+            skipDryRun:      true,
+            pollingInterval: 60000,
+        },
         // Another network with more advanced options...
         // advanced: {
         // port: 8777,             // Custom port

@@ -234,7 +234,7 @@ contract DappStore is AccessControl, Initializable {
 
     function submitCommentInfo(address projectAddress, uint8 score, string calldata title, string calldata review) public onlyPassedProject(projectAddress) {
         require(commentInfos[projectAddress][msg.sender].score == 0, "DS: one project can be reviewed at the same address");
-        require(score > 0 && score <= 50, "DS: score must between 1 and 50");
+        require(score >= 5 && score <= 50, "DS: score must between 5 and 50");
         uint title_length = bytes(title).length;
         require(title_length > 0 && title_length <= 30, "DS: title length must between 1 and 30");
 

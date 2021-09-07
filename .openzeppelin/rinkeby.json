@@ -342,6 +342,337 @@
           }
         }
       }
+    },
+    "4752f4afd46463a680ccda7f525cb3f9f659f8d7bc33212436c528ccf329c9d9": {
+      "address": "0x89CD84E95f4e2853e7c17Da6f745f91f9e636711",
+      "txHash": "0x18abca590d7c01184d208a0e1272e231175c34057d33c18967227948ce26f304",
+      "layout": {
+        "storage": [
+          {
+            "contract": "AccessControl",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)2656_storage)",
+            "src": "../@openzeppelin/contracts/access/AccessControl.sol:54"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "../@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "../@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "minMarginAmount",
+            "type": "t_uint256",
+            "src": "DappStoreV2.sol:12"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "curPrimaryCategoryIndex",
+            "type": "t_uint256",
+            "src": "DappStoreV2.sol:13"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "curSecondaryCategoryIndex",
+            "type": "t_uint256",
+            "src": "DappStoreV2.sol:14"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "existPrimaryCategories",
+            "type": "t_mapping(t_string_memory_ptr,t_bool)",
+            "src": "DappStoreV2.sol:77"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "existSecondaryCategories",
+            "type": "t_mapping(t_string_memory_ptr,t_bool)",
+            "src": "DappStoreV2.sol:78"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "primaryCategories",
+            "type": "t_mapping(t_uint256,t_string_storage)",
+            "src": "DappStoreV2.sol:79"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "secondaryCategories",
+            "type": "t_mapping(t_uint256,t_string_storage)",
+            "src": "DappStoreV2.sol:80"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "projectInfos",
+            "type": "t_mapping(t_address,t_struct(ProjectInfo)1328_storage)",
+            "src": "DappStoreV2.sol:81"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "changedInfos",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(ChangedInfo)1386_storage))",
+            "src": "DappStoreV2.sol:82"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "commentInfos",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(CommentInfo)1395_storage))",
+            "src": "DappStoreV2.sol:83"
+          },
+          {
+            "contract": "DappStoreV2",
+            "label": "isLikeCommentInfos",
+            "type": "t_mapping(t_bytes32,t_mapping(t_address,t_uint8))",
+            "src": "DappStoreV2.sol:84"
+          }
+        ],
+        "types": {
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_string_memory_ptr,t_bool)": {
+            "label": "mapping(string => bool)"
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_mapping(t_uint256,t_string_storage)": {
+            "label": "mapping(uint256 => string)"
+          },
+          "t_mapping(t_address,t_struct(ProjectInfo)1328_storage)": {
+            "label": "mapping(address => struct DappStoreV2.ProjectInfo)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_struct(ProjectInfo)1328_storage": {
+            "label": "struct DappStoreV2.ProjectInfo",
+            "members": [
+              {
+                "label": "requiredProjectInfo",
+                "type": "t_struct(RequiredProjectInfo)1349_storage"
+              },
+              {
+                "label": "optionalProjectInfo",
+                "type": "t_struct(OptionalProjectInfo)1368_storage"
+              },
+              {
+                "label": "status",
+                "type": "t_uint8"
+              },
+              {
+                "label": "curVersion",
+                "type": "t_uint256"
+              },
+              {
+                "label": "createTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "updateStatus",
+                "type": "t_bool"
+              }
+            ]
+          },
+          "t_struct(RequiredProjectInfo)1349_storage": {
+            "label": "struct DappStoreV2.RequiredProjectInfo",
+            "members": [
+              {
+                "label": "title",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "primaryCategoryIndex",
+                "type": "t_uint256"
+              },
+              {
+                "label": "secondaryCategoryIndex",
+                "type": "t_uint256"
+              },
+              {
+                "label": "shortIntroduction",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "logoLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "banner",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "websiteLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "contractAddresses",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "email",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "marginAmount",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_struct(OptionalProjectInfo)1368_storage": {
+            "label": "struct DappStoreV2.OptionalProjectInfo",
+            "members": [
+              {
+                "label": "tokenSymbol",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "tokenContractAddress",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "tvlInterface",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "detailDescription",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "twitterLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "telegramLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "githubLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "coinmarketcapLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "coingeckoLink",
+                "type": "t_string_storage"
+              }
+            ]
+          },
+          "t_uint8": {
+            "label": "uint8"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(ChangedInfo)1386_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct DappStoreV2.ChangedInfo))"
+          },
+          "t_mapping(t_uint256,t_struct(ChangedInfo)1386_storage)": {
+            "label": "mapping(uint256 => struct DappStoreV2.ChangedInfo)"
+          },
+          "t_struct(ChangedInfo)1386_storage": {
+            "label": "struct DappStoreV2.ChangedInfo",
+            "members": [
+              {
+                "label": "optionalProjectInfo",
+                "type": "t_struct(OptionalProjectInfo)1368_storage"
+              },
+              {
+                "label": "primaryCategory",
+                "type": "t_uint256"
+              },
+              {
+                "label": "secondaryCategory",
+                "type": "t_uint256"
+              },
+              {
+                "label": "shortIntroduction",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "logoLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "banner",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "websiteLink",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "addMarginAmount",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_struct(CommentInfo)1395_storage))": {
+            "label": "mapping(address => mapping(address => struct DappStoreV2.CommentInfo))"
+          },
+          "t_mapping(t_address,t_struct(CommentInfo)1395_storage)": {
+            "label": "mapping(address => struct DappStoreV2.CommentInfo)"
+          },
+          "t_struct(CommentInfo)1395_storage": {
+            "label": "struct DappStoreV2.CommentInfo",
+            "members": [
+              {
+                "label": "score",
+                "type": "t_uint8"
+              },
+              {
+                "label": "title",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "review",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_bytes32,t_mapping(t_address,t_uint8))": {
+            "label": "mapping(bytes32 => mapping(address => uint8))"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_mapping(t_address,t_uint8)": {
+            "label": "mapping(address => uint8)"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)2656_storage)": {
+            "label": "mapping(bytes32 => struct AccessControl.RoleData)"
+          },
+          "t_struct(RoleData)2656_storage": {
+            "label": "struct AccessControl.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          }
+        }
+      }
     }
   }
 }

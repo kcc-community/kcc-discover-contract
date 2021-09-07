@@ -2,23 +2,33 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract DappStore is AccessControl, Initializable {
+    using SafeERC20 for IERC20;
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
 
     uint public minMarginAmount;
     uint public curPrimaryCategoryIndex;
     uint public curSecondaryCategoryIndex;
 
+    enum ProjectState {
+        None,
+        Pending,
+        Succeeded,
+        Defeated,
+        Canceled
+    }
+    ProjectState constant defaultProjectState = ProjectState.Pending;
+
     struct ProjectInfo {
         RequiredProjectInfo requiredProjectInfo;
         OptionalProjectInfo optionalProjectInfo;
-        uint8 status;  // 0表示未创建，1表示待审核, 2表示已通过, 3表示未通过, 4表示下架
+        uint8 status;
         uint curVersion;
         uint createTime;
-        bool updateStatus;  // false表示无进行中的版本更新，true表示有进行中的版本更新
+        bool updateStatus;
     }
 
     struct RequiredProjectInfo {
@@ -64,14 +74,14 @@ contract DappStore is AccessControl, Initializable {
         uint timestamp;
     }
 
-    mapping (string => bool) public existPrimaryCategories;
-    mapping (string => bool) public existSecondaryCategories;
-    mapping (uint => string) public primaryCategories;
-    mapping (uint => string) public secondaryCategories;
-    mapping (address => ProjectInfo) public projectInfos;
-    mapping (address => mapping(uint => ChangedInfo)) public changedInfos;
-    mapping (address => mapping(address => CommentInfo)) public commentInfos;
-    mapping (bytes32 => mapping(address => uint8)) public isLikeCommentInfos;
+    mapping(string => bool) public existPrimaryCategories;
+    mapping(string => bool) public existSecondaryCategories;
+    mapping(uint => string) public primaryCategories;
+    mapping(uint => string) public secondaryCategories;
+    mapping(address => ProjectInfo) public projectInfos;
+    mapping(address => mapping(uint => ChangedInfo)) public changedInfos;
+    mapping(address => mapping(address => CommentInfo)) public commentInfos;
+    mapping(bytes32 => mapping(address => uint8)) public isLikeCommentInfos;
 
     event UpdateMinMarginAmount(uint amount);
     event AddPrimaryCategory(uint index, string primaryCategory);
@@ -89,7 +99,6 @@ contract DappStore is AccessControl, Initializable {
     // ["DeFi", "Infrastructure", "Tools"]
     // ["Exchange", "NFT", "Game", "Earn", "Lending", "DAO", "Wallet", "Community", "Others"]
     function initialize(string[] memory _primaryCategories, string[] memory _secondaryCategories) public initializer {
-        // 上线前需要修改
         minMarginAmount = 10 ** 17;
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(VERIFIER_ROLE, _msgSender());
@@ -152,66 +161,83 @@ contract DappStore is AccessControl, Initializable {
     // ["title", 0, 0, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2", "xx@gmail.com", "100000000000000000"]
     // ["", "", "", "", "", "", "", "", ""]
     function submitProjectInfo(RequiredProjectInfo calldata requiredProjectInfo, OptionalProjectInfo calldata optionalProjectInfo) public payable onlyCheckedCategory(requiredProjectInfo.primaryCategoryIndex, requiredProjectInfo.secondaryCategoryIndex) {
-        require(projectInfos[msg.sender].status == 0, "DS: one project can be submitted at the same address");
-        require(msg.value >= minMarginAmount && msg.value == requiredProjectInfo.marginAmount, "DS: marginAmount error");
+        require(projectInfos[msg.sender].status == uint8(ProjectState.None), "DS: only one submission is allowed for an account");
+        require(msg.value == requiredProjectInfo.marginAmount, "DS: margin amount error");
+        require(msg.value >= minMarginAmount, "DS: insufficient value amounts");
         require(bytes(requiredProjectInfo.title).length <= 30, "DS: title length must <= 30");
         require(bytes(requiredProjectInfo.shortIntroduction).length <= 50, "DS: shortIntroduction length must <= 50");
 
         ProjectInfo storage projectInfo = projectInfos[msg.sender];
         projectInfo.requiredProjectInfo = requiredProjectInfo;
         projectInfo.optionalProjectInfo = optionalProjectInfo;
-        projectInfo.status = 1;
+        projectInfo.status = uint8(defaultProjectState);
         projectInfo.createTime = block.timestamp;
 
         emit SubmitProjectInfo(msg.sender, projectInfo);
     }
 
-    function verifySubmitProjectInfo(address payable projectAddress, uint8 _status) public onlyVerifier {
-        require(_status == 2 || _status == 3, "DS: invalid _status value");
-        if (_status == 3) {
-            projectAddress.transfer(projectInfos[projectAddress].requiredProjectInfo.marginAmount);
-        }
-        projectInfos[projectAddress].status = _status;
+    function successSubmittedProjectInfo(address projectAddress) public onlyVerifier {
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Pending), "DS: invalid _status value");
+        changeProjectState(projectAddress, ProjectState.Succeeded);
+    }
 
-        emit VerifySubmitProjectInfo(projectAddress, _status);
+    function defeatSubmittedProjectInfo(address payable projectAddress) public onlyVerifier {
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Pending), "DS: invalid _status value");
+        projectAddress.transfer(projectInfos[projectAddress].requiredProjectInfo.marginAmount);
+        changeProjectState(projectAddress, ProjectState.Defeated);
+    }
+
+    function cancelledProject(address payable projectAddress) public onlyVerifier {
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Succeeded), "DS: invalid _status value");
+        changeProjectState(projectAddress, ProjectState.Canceled);
+    }
+
+    function changeProjectState(address projectAddress, ProjectState _status) internal {
+        projectInfos[projectAddress].status = uint8(_status);
+        emit VerifySubmitProjectInfo(projectAddress, uint8(_status));
     }
 
     // [["", "", "", "", "", "", "", "", ""], 1, 1, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0"]
     function updateProjectInfo(address projectAddress, ChangedInfo calldata _changedInfo) public payable onlyPassedProject(projectAddress) onlyCheckedCategory(_changedInfo.primaryCategory, _changedInfo.secondaryCategory) {
         require(!projectInfos[projectAddress].updateStatus, "DS: updateStatus must be false");
-        require(msg.sender == projectAddress, "DS: projectAddress must be equal msg.sender");
-        require(msg.value == _changedInfo.addMarginAmount, "DS: msg.value or addMarginAmount error");
+        require(msg.sender == projectAddress, "DS: projectAddress must be equal to msg.sender");
+        require(msg.value == _changedInfo.addMarginAmount, "DS: msg.value not equal to addMarginAmount");
+        require(_changedInfo.addMarginAmount + projectInfos[projectAddress].requiredProjectInfo.marginAmount >= minMarginAmount, "DS: insufficient margin amount");
         require(bytes(_changedInfo.shortIntroduction).length <= 50, "DS: shortIntroduction length must <= 50");
 
-        uint version = projectInfos[projectAddress].curVersion + 1;
+        uint version = ++projectInfos[projectAddress].curVersion;
         changedInfos[projectAddress][version] = _changedInfo;
         projectInfos[projectAddress].updateStatus = true;
 
         emit UpdateProjectInfo(projectAddress, version, _changedInfo);
     }
 
-    function verifyUpdateProjectInfo(address payable projectAddress, uint version, bool isUpdate) public onlyVerifier {
-        uint addMarginAmount = changedInfos[projectAddress][version].addMarginAmount;
-        if (isUpdate) {
-            projectInfos[projectAddress].requiredProjectInfo.marginAmount = addMarginAmount + projectInfos[projectAddress].requiredProjectInfo.marginAmount;
+    function successUpdatedProjectInfo(address projectAddress) public onlyVerifier onlyPendingUpdate(projectAddress) {
+        uint version = projectInfos[projectAddress].curVersion;
+        uint newMarginAmount = projectInfos[projectAddress].requiredProjectInfo.marginAmount + changedInfos[projectAddress][version].addMarginAmount;
+        projectInfos[projectAddress].requiredProjectInfo.marginAmount = newMarginAmount;
+        changeUpdatedProjectState(projectAddress, version, true);
+    }
 
-            projectInfos[projectAddress].curVersion = version;
-        } else {
-            if (addMarginAmount > 0) {
-                projectAddress.transfer(addMarginAmount);
-            }
-            delete changedInfos[projectAddress][version];
+    function defeatUpdatedProjectInfo(address payable projectAddress) public onlyVerifier onlyPendingUpdate(projectAddress) {
+        uint version = projectInfos[projectAddress].curVersion;
+        if (changedInfos[projectAddress][version].addMarginAmount > 0) {
+            projectAddress.transfer(changedInfos[projectAddress][version].addMarginAmount);
         }
-        projectInfos[projectAddress].updateStatus = false;
+        changeUpdatedProjectState(projectAddress, version, false);
+    }
 
+    function changeUpdatedProjectState(address projectAddress, uint version, bool isUpdate) internal {
+        projectInfos[projectAddress].updateStatus = false;
         emit VerifyUpdateProjectInfo(projectAddress, version, isUpdate);
     }
 
     function submitCommentInfo(address projectAddress, uint8 score, string calldata title, string calldata review) public onlyPassedProject(projectAddress) {
         require(commentInfos[projectAddress][msg.sender].score == 0, "DS: one project can be reviewed at the same address");
-        require(score > 0 && score <= 5, "DS: socre must >0 and <=5");
+        require(score > 0 && score <= 50, "DS: score must between 1 and 50");
         uint title_length = bytes(title).length;
-        require(title_length> 0 && title_length <= 30, "DS: title length must > 0 and <=30");
+        require(title_length > 0 && title_length <= 30, "DS: title length must between 1 and 30");
+
         CommentInfo memory commentInfo = CommentInfo(score, title, review, block.timestamp);
         commentInfos[projectAddress][msg.sender] = commentInfo;
 
@@ -220,7 +246,7 @@ contract DappStore is AccessControl, Initializable {
 
     // isLike=0 => default, isLike=1 => like, isLike=2 => dislike
     function isLikeCommentInfo(address projectAddress, address reviewer, uint8 isLike) public onlyPassedProject(projectAddress) {
-        require(isLike >= 0 && isLike <= 2, "DS: isLike must >=0 or <=2");
+        require(isLike >= 0 && isLike <= 2, "DS: isLike must between 0 and 2");
         require(commentInfos[projectAddress][reviewer].score > 0, "DS: review must exist");
         bytes32 commentHash = keccak256(abi.encodePacked(projectAddress, projectAddress));
         isLikeCommentInfos[commentHash][msg.sender] = isLike;
@@ -235,7 +261,7 @@ contract DappStore is AccessControl, Initializable {
 
     function withdrawKRC20Token(address tokenAddress, address to, uint amount) public onlyOwner {
         require(IERC20(tokenAddress).balanceOf(address(this)) >= amount, "DS: insufficient contract balance");
-        IERC20(tokenAddress).transfer(to, amount);
+        IERC20(tokenAddress).safeTransfer(to, amount);
     }
 
     modifier onlyOwner() {
@@ -257,7 +283,12 @@ contract DappStore is AccessControl, Initializable {
     }
 
     modifier onlyPassedProject(address projectAddress) {
-        require(projectInfos[projectAddress].status == 2, "DS: project must have passed");
+        require(projectInfos[projectAddress].status == uint8(ProjectState.Succeeded), "DS: project must have passed");
+        _;
+    }
+
+    modifier onlyPendingUpdate(address projectAddress) {
+        require(projectInfos[projectAddress].updateStatus, "DS: no updated info to review");
         _;
     }
 }

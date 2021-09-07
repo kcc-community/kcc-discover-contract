@@ -205,7 +205,7 @@ contract DappStore is AccessControl, Initializable {
         require(_changedInfo.addMarginAmount + projectInfos[projectAddress].requiredProjectInfo.marginAmount >= minMarginAmount, "DS: insufficient margin amount");
         require(bytes(_changedInfo.shortIntroduction).length <= 50, "DS: shortIntroduction length must <= 50");
 
-        uint version = projectInfos[projectAddress].curVersion++;
+        uint version = ++projectInfos[projectAddress].curVersion;
         changedInfos[projectAddress][version] = _changedInfo;
         projectInfos[projectAddress].updateStatus = true;
 

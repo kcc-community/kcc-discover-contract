@@ -1,26 +1,26 @@
 {
   "manifestVersion": "3.2",
   "admin": {
-    "address": "0x4B497B5fdCc81F785C9402D709B891F159eE9971",
-    "txHash": "0xda7276ea1a85c0f999c348d81303bac77a830eeaa978ab19521688e96a9df5cf"
+    "address": "0x34BC3ff67F9e42B9932d99BE42C1142012Ad1256",
+    "txHash": "0x202b88064f20dd135e6283da0a3b6f8b9b752eba36c07a30f2b5437b2004e037"
   },
   "proxies": [
     {
-      "address": "0xC44e4fb4be5a60025e3Dc011c60B5bbb8cdDDa4E",
-      "txHash": "0x58ade605e362451b872b28838d684e3798c46a4912d56b5d8ab7f2a5ab833d0e",
+      "address": "0x9fd808e41B7E20028fC30D8D9CFAf84da2816Adb",
+      "txHash": "0x9d01b6c9fcfd619985facb5c7ff343d1ece298638e78faa38d1fbe14c1eafe3b",
       "kind": "transparent"
     }
   ],
   "impls": {
-    "b1e2165432c8188508674186fe83d9e3b5c639b6165869c7edf3a3d705122c2b": {
-      "address": "0xBD333eA48DA85b206FD2B8DeD4ce4AcE167703ef",
-      "txHash": "0xbec0da62d94da0e5dfe2b688dbf88ad13b0c83c134d8dddbff6e2e62b8abea05",
+    "bf91739bb4bed69fc5d44adbb4f752bcc2204b791b7aa772e8b716cffcb58ea0": {
+      "address": "0x14425Aa886b3b9959145090A108BA0E18e4EE5A8",
+      "txHash": "0x37ad8e6aff56816ff4a79f8e15407deb5b4eb018fe209d529cdcbac55f3bc930",
       "layout": {
         "storage": [
           {
             "contract": "AccessControl",
             "label": "_roles",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)2656_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)1377_storage)",
             "src": "../@openzeppelin/contracts/access/AccessControl.sol:54"
           },
           {
@@ -321,10 +321,10 @@
           "t_mapping(t_address,t_uint8)": {
             "label": "mapping(address => uint8)"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)2656_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)1377_storage)": {
             "label": "mapping(bytes32 => struct AccessControl.RoleData)"
           },
-          "t_struct(RoleData)2656_storage": {
+          "t_struct(RoleData)1377_storage": {
             "label": "struct AccessControl.RoleData",
             "members": [
               {

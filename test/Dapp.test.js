@@ -1,6 +1,6 @@
 const {
           deployProxy,
-          upgradeProxy,
+          // upgradeProxy,
       }         = require("@openzeppelin/truffle-upgrades");
 const {
           BN,
@@ -9,7 +9,6 @@ const {
           expectEvent,
           expectRevert,
       }         = require("@openzeppelin/test-helpers");
-const {fromWei} = require("web3-utils");
 const {expect}  = require("chai");
 
 const priCategory = ["DeFi", "Infrastructure", "Tools"];
@@ -24,7 +23,7 @@ before(async function () {
     Store = await deployProxy(DappStore, [priCategory, secCategory]);
 });
 
-contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2, owner3, commentator, liker]) {
+contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2, owner3]) {
     const amount = ether("1").toString();
     let options  = ["", "", "", "", "", "", "", "", ""];
     let info     = ["title", 0, 0, "shortIntroduction", "logoLink", "bannerLink", "websiteLink", "0x00000000", "xx@gmail.com", amount];
@@ -155,7 +154,7 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
 
             it("update info: insufficient", async function () {
                 update[update.length - 1] = amount;
-                const promise = Store.updateProjectInfo(owner2, update, {
+                const promise             = Store.updateProjectInfo(owner2, update, {
                     value: amount,
                     from:  owner2,
                 });
@@ -186,7 +185,6 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
                 const owner2BalanceBefore = await balance.current(owner2);
 
                 const receipt = await Store.defeatUpdatedProjectInfo(owner2, {from: verifier});
-                // console.info(receipt.logs[0].args);
                 expectEvent(receipt, "VerifyUpdateProjectInfo", {
                     projectAddress: owner2,
                     version:        "2",
@@ -196,6 +194,20 @@ contract("Dapp", function ([deployer, unauthenticated, verifier, owner1, owner2,
                 const erc20BalanceAfter  = await balance.current(Store.address);
                 const owner2BalanceAfter = await balance.current(owner2);
                 expect(erc20BalanceBefore.sub(erc20BalanceAfter)).to.be.bignumber.equal(owner2BalanceAfter.sub(owner2BalanceBefore));
+            });
+
+            it("comment", async function () {
+                const commentReceipt = await Store.submitCommentInfo(owner2, 20, "title", "review", {from: owner3});
+                expectEvent(commentReceipt, "SubmitCommentInfo", {
+                    projectAddress: owner2,
+                    submitAddress:  owner3,
+                });
+
+                const deleteReceipt = await Store.deleteComment(owner2, {from: owner3});
+                expectEvent(deleteReceipt, "DeleteComment", {
+                    projectAddress: owner2,
+                    reviewer:  owner3,
+                });
             });
         });
 

@@ -94,6 +94,7 @@ contract DappStore is AccessControl, Initializable {
     event VerifyUpdateProjectInfo(address projectAddress, uint version, bool isUpdate);
     event SubmitCommentInfo(address projectAddress, address submitAddress, CommentInfo commentInfo);
     event IsLikeCommentInfo(address projectAddress, address reviewer, address isLikeAddress, uint8 isLike);
+    event DeleteComment(address projectAddress, address reviewer);
 
 
     // ["DeFi", "Infrastructure", "Tools"]
@@ -161,7 +162,8 @@ contract DappStore is AccessControl, Initializable {
     // ["title", 0, 0, "shortIntroduction", "logoLink", "bannerLink","websiteLink", "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2", "xx@gmail.com", "100000000000000000"]
     // ["", "", "", "", "", "", "", "", ""]
     function submitProjectInfo(RequiredProjectInfo calldata requiredProjectInfo, OptionalProjectInfo calldata optionalProjectInfo) public payable onlyCheckedCategory(requiredProjectInfo.primaryCategoryIndex, requiredProjectInfo.secondaryCategoryIndex) {
-        require(projectInfos[msg.sender].status == uint8(ProjectState.None), "DS: only one submission is allowed for an account");
+        uint8 status = projectInfos[msg.sender].status;
+        require(status == uint8(ProjectState.None) || status == uint8(ProjectState.Defeated), "DS: only one submission is allowed for an account");
         require(msg.value == requiredProjectInfo.marginAmount, "DS: margin amount error");
         require(msg.value >= minMarginAmount, "DS: insufficient value amounts");
         require(bytes(requiredProjectInfo.title).length <= 30, "DS: title length must <= 30");
@@ -212,14 +214,14 @@ contract DappStore is AccessControl, Initializable {
         emit UpdateProjectInfo(projectAddress, version, _changedInfo);
     }
 
-    function successUpdatedProjectInfo(address projectAddress) public onlyVerifier onlyPendingUpdate(projectAddress) {
+    function successUpdatedProjectInfo(address projectAddress) public onlyVerifier onlyPassedProject(projectAddress) onlyPendingUpdate(projectAddress) {
         uint version = projectInfos[projectAddress].curVersion;
         uint newMarginAmount = projectInfos[projectAddress].requiredProjectInfo.marginAmount + changedInfos[projectAddress][version].addMarginAmount;
         projectInfos[projectAddress].requiredProjectInfo.marginAmount = newMarginAmount;
         changeUpdatedProjectState(projectAddress, version, true);
     }
 
-    function defeatUpdatedProjectInfo(address payable projectAddress) public onlyVerifier onlyPendingUpdate(projectAddress) {
+    function defeatUpdatedProjectInfo(address payable projectAddress) public onlyVerifier onlyPassedProject(projectAddress) onlyPendingUpdate(projectAddress) {
         uint version = projectInfos[projectAddress].curVersion;
         if (changedInfos[projectAddress][version].addMarginAmount > 0) {
             projectAddress.transfer(changedInfos[projectAddress][version].addMarginAmount);
@@ -244,11 +246,18 @@ contract DappStore is AccessControl, Initializable {
         emit SubmitCommentInfo(projectAddress, msg.sender, commentInfo);
     }
 
+    function deleteComment(address projectAddress) public onlyPassedProject(projectAddress) {
+        require(commentInfos[projectAddress][msg.sender].score > 0, "DS: review must exist");
+        delete commentInfos[projectAddress][msg.sender];
+
+        emit DeleteComment(projectAddress, msg.sender);
+    }
+
     // isLike=0 => default, isLike=1 => like, isLike=2 => dislike
     function isLikeCommentInfo(address projectAddress, address reviewer, uint8 isLike) public onlyPassedProject(projectAddress) {
         require(isLike >= 0 && isLike <= 2, "DS: isLike must between 0 and 2");
         require(commentInfos[projectAddress][reviewer].score > 0, "DS: review must exist");
-        bytes32 commentHash = keccak256(abi.encodePacked(projectAddress, projectAddress));
+        bytes32 commentHash = keccak256(abi.encodePacked(projectAddress, reviewer));
         isLikeCommentInfos[commentHash][msg.sender] = isLike;
 
         emit IsLikeCommentInfo(projectAddress, reviewer, msg.sender, isLike);

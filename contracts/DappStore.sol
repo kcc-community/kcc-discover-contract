@@ -163,7 +163,7 @@ contract DappStore is AccessControl, Initializable {
     // ["", "", "", "", "", "", "", "", ""]
     function submitProjectInfo(RequiredProjectInfo calldata requiredProjectInfo, OptionalProjectInfo calldata optionalProjectInfo) public payable onlyCheckedCategory(requiredProjectInfo.primaryCategoryIndex, requiredProjectInfo.secondaryCategoryIndex) {
         uint8 status = projectInfos[msg.sender].status;
-        require(status == uint8(ProjectState.None) || status == uint8(ProjectState.Defeated), "DS: only one submission is allowed for an account");
+        require((status == uint8(ProjectState.None)) || (status == uint8(ProjectState.Defeated)), "DS: only one submission is allowed for an account");
         require(msg.value == requiredProjectInfo.marginAmount, "DS: margin amount error");
         require(msg.value >= minMarginAmount, "DS: insufficient value amounts");
         require(bytes(requiredProjectInfo.title).length <= 30, "DS: title length must <= 30");
